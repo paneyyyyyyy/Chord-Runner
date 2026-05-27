@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>和弦疾行者 — Chord Runner</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --neon-cyan:#00f5ff;--neon-pink:#ff006e;--neon-green:#39ff14;
+  --neon-yellow:#ffff00;--neon-orange:#ff6b00;
+  --bg-dark:#050811;--bg-mid:#0a1020;--bg-panel:#0d1830;
+  --text-main:#e0f0ff;--text-dim:#5a7a9a;
+  --grid-color:rgba(0,200,255,0.08);
+  --border-glow:rgba(0,245,255,0.3);
+}
+body{background:var(--bg-dark);color:var(--text-main);font-family:'Share Tech Mono',monospace;overflow:hidden;height:100vh;width:100vw}
+#app{width:100vw;height:100vh;position:relative}
+
+/* ===== SONG SELECT ===== */
+#screen-select{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  background:radial-gradient(ellipse at 50% 0%, #0a2040 0%, var(--bg-dark) 70%);
+  overflow-y:auto;padding:2rem 1rem;
+}
+.title-logo{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.6rem,4vw,3rem);font-weight:900;
+  color:var(--neon-cyan);text-shadow:0 0 20px var(--neon-cyan),0 0 40px rgba(0,245,255,0.4);
+  letter-spacing:.15em;margin-bottom:.3rem;text-align:center;
+}
+.title-sub{font-size:.85rem;color:var(--text-dim);letter-spacing:.3em;margin-bottom:2.5rem}
+.song-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem;width:100%;max-width:960px}
+.song-card{
+  background:var(--bg-panel);border:1px solid var(--border-glow);border-radius:12px;
+  padding:1.4rem;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;
+}
+.song-card::before{
+  content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,245,255,0.04),transparent);
+  opacity:0;transition:opacity .25s;
+}
+.song-card:hover{border-color:var(--neon-cyan);transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,245,255,0.2)}
+.song-card:hover::before{opacity:1}
+.song-name{font-family:'Orbitron',sans-serif;font-size:1.05rem;color:var(--neon-cyan);margin-bottom:.5rem}
+.song-artist{font-size:.8rem;color:var(--text-dim);margin-bottom:1rem}
+.song-meta{display:flex;gap:1.2rem;font-size:.75rem;color:var(--text-dim);margin-bottom:.8rem}
+.song-meta span{display:flex;align-items:center;gap:.3rem}
+.song-stars{font-size:1rem;letter-spacing:.1em}
+.song-tag{
+  display:inline-block;padding:.2rem .6rem;border-radius:4px;font-size:.7rem;
+  background:rgba(0,245,255,.1);color:var(--neon-cyan);border:1px solid rgba(0,245,255,.2);
+}
+.blind-toggle-wrap{display:flex;align-items:center;gap:1rem;margin:1.5rem 0;font-size:.85rem;color:var(--text-dim)}
+.toggle-btn{
+  width:48px;height:26px;background:#1a2a3a;border:1px solid var(--border-glow);border-radius:13px;
+  position:relative;cursor:pointer;transition:background .2s;
+}
+.toggle-btn.active{background:rgba(0,245,255,.25);border-color:var(--neon-cyan)}
+.toggle-knob{
+  position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+  background:var(--text-dim);transition:all .2s;
+}
+.toggle-btn.active .toggle-knob{left:25px;background:var(--neon-cyan)}
+
+/* ===== GAME SCREEN ===== */
+#screen-game{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg-dark)}
+#game-hud{
+  display:flex;align-items:center;gap:1rem;padding:.5rem 1rem;
+  background:rgba(5,8,17,.9);border-bottom:1px solid var(--border-glow);flex-shrink:0;
+}
+#hud-song{font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--neon-cyan);min-width:120px}
+#hud-progress-bar{flex:1;height:6px;background:#0d1830;border-radius:3px;overflow:hidden}
+#hud-progress-fill{height:100%;background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink));width:0%;transition:width .2s}
+#hud-score{font-family:'Orbitron',sans-serif;font-size:.9rem;color:var(--neon-yellow);min-width:90px;text-align:right}
+#hud-combo{font-family:'Orbitron',sans-serif;font-size:.8rem;color:var(--neon-pink);min-width:70px;text-align:center}
+#hud-hp{display:flex;gap:3px;align-items:center}
+.hp-pip{width:12px;height:12px;border-radius:2px;background:var(--neon-green);transition:background .3s}
+.hp-pip.lost{background:#1a2a1a}
+#canvas-wrap{flex:1;position:relative;overflow:hidden}
+#main-canvas{display:block;width:100%;height:100%}
+#blind-indicator{
+  position:absolute;top:8px;right:8px;padding:.3rem .7rem;border-radius:6px;
+  background:rgba(255,0,110,.15);border:1px solid rgba(255,0,110,.4);
+  font-size:.7rem;color:var(--neon-pink);display:none;
+}
+#chord-panel{
+  background:rgba(5,8,17,.95);border-top:1px solid var(--border-glow);
+  padding:.7rem;display:flex;justify-content:center;gap:.7rem;flex-wrap:wrap;flex-shrink:0;
+}
+.chord-btn{
+  min-width:80px;padding:.6rem .9rem;border-radius:8px;border:1.5px solid var(--border-glow);
+  background:var(--bg-panel);color:var(--text-main);cursor:pointer;font-family:'Orbitron',sans-serif;
+  font-size:.85rem;position:relative;transition:all .15s;text-align:center;
+}
+.chord-btn:hover{border-color:var(--neon-cyan);background:rgba(0,245,255,.08)}
+.chord-btn.pressed{transform:scale(.93);background:rgba(0,245,255,.2);border-color:var(--neon-cyan)}
+.chord-btn .key-hint{
+  position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+  background:var(--neon-cyan);color:#000;font-size:.55rem;padding:1px 5px;border-radius:3px;
+  font-family:'Share Tech Mono',monospace;font-weight:700;
+}
+.chord-btn .chord-quality{font-size:.65rem;color:var(--text-dim);display:block;margin-top:2px}
+
+/* ===== PAUSE OVERLAY ===== */
+#pause-overlay {
+  position: absolute; inset: 0; background: rgba(5, 8, 17, 0.85);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 10; backdrop-filter: blur(4px);
+}
+.pause-title {
+  font-family: 'Orbitron', sans-serif; font-size: 3rem; color: var(--neon-cyan);
+  text-shadow: 0 0 20px var(--neon-cyan); margin-bottom: 2rem; letter-spacing: 0.2em;
+}
+
+/* ===== RESULT SCREEN ===== */
+#screen-result{
+  position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 40%, rgba(0,245,255,.05) 0%, var(--bg-dark) 60%);
+}
+.result-title{
+  font-family:'Orbitron',sans-serif;font-size:clamp(2rem,6vw,4rem);font-weight:900;
+  letter-spacing:.2em;margin-bottom:1rem;
+  animation:pulseTxt 1.5s ease-in-out infinite;
+}
+.result-title.clear{color:var(--neon-cyan);text-shadow:0 0 30px var(--neon-cyan)}
+.result-title.fail{color:var(--neon-pink);text-shadow:0 0 30px var(--neon-pink)}
+.result-grade{
+  font-family:'Orbitron',sans-serif;font-size:clamp(3rem,10vw,7rem);font-weight:900;
+  margin:.5rem 0;animation:gradeIn .5s ease-out;
+}
+.grade-ss{color:var(--neon-yellow);text-shadow:0 0 40px var(--neon-yellow)}
+.grade-s{color:var(--neon-cyan);text-shadow:0 0 30px var(--neon-cyan)}
+.grade-a{color:var(--neon-green);text-shadow:0 0 25px var(--neon-green)}
+.grade-b{color:var(--neon-orange);text-shadow:0 0 20px var(--neon-orange)}
+.grade-f{color:var(--neon-pink);text-shadow:0 0 20px var(--neon-pink)}
+.result-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin:1.5rem 0;width:min(500px,90vw)}
+.stat-box{
+  background:var(--bg-panel);border:1px solid var(--border-glow);border-radius:8px;
+  padding:1rem;text-align:center;
+}
+.stat-label{font-size:.7rem;color:var(--text-dim);letter-spacing:.15em;margin-bottom:.4rem}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:1.3rem;color:var(--neon-cyan)}
+.result-btns{display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap;justify-content:center}
+.btn-neon{
+  padding:.7rem 2rem;border-radius:8px;border:1.5px solid var(--neon-cyan);
+  background:transparent;color:var(--neon-cyan);font-family:'Orbitron',sans-serif;
+  font-size:.85rem;cursor:pointer;transition:all .2s;letter-spacing:.1em;
+}
+.btn-neon:hover{background:rgba(0,245,255,.15);box-shadow:0 0 15px rgba(0,245,255,.3)}
+
+/* ===== HOW TO PLAY ===== */
+.how-to{
+  margin-top:1rem;padding:1rem 1.5rem;background:rgba(0,245,255,.04);
+  border:1px solid rgba(0,245,255,.12);border-radius:10px;
+  max-width:600px;width:90%;font-size:.78rem;color:var(--text-dim);line-height:1.7;
+}
+.how-to h3{color:var(--neon-cyan);font-family:'Orbitron',sans-serif;font-size:.8rem;margin-bottom:.5rem}
+
+@keyframes pulseTxt{0%,100%{opacity:1}50%{opacity:.7}}
+@keyframes gradeIn{0%{transform:scale(2);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* overlay for hit/miss flash */
+#flash-overlay{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .15s}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="screen-select">
+  <div class="title-logo">和弦疾行者</div>
+  <div class="title-sub">— CHORD RUNNER —</div>
+  <div class="blind-toggle-wrap">
+    <span>🎧 盲聽模式 (Blind Mode)</span>
+    <div class="toggle-btn" id="blind-toggle"><div class="toggle-knob"></div></div>
+    <span id="blind-label">OFF</span>
+  </div>
+  <div class="song-grid" id="song-grid"></div>
+  <div class="how-to">
+    <h3>HOW TO PLAY</h3>
+    障礙物從右側滑來，當它抵達角色腳下時（判定線閃光），按下對應和弦按鈕越過斷崖！<br>
+    使用鍵盤 A S D F G 或點擊按鈕作答。連續答對可疊加 COMBO 加成分數。<br>
+    遊戲進行中可隨時按下 <b>ESC</b> 鍵暫停。
+  </div>
+</div>
+
+<div id="screen-game">
+  <div id="pause-overlay">
+    <div class="pause-title">PAUSED</div>
+    <div class="result-btns">
+      <button class="btn-neon" onclick="pauseGame()">▶ RESUME (ESC)</button>
+      <button class="btn-neon" onclick="showSelect()">☰ QUIT TO MENU</button>
+    </div>
+  </div>
+
+  <div id="game-hud">
+    <div id="hud-song">CHORD RUNNER</div>
+    <div id="hud-progress-bar"><div id="hud-progress-fill"></div></div>
+    <div id="hud-combo">× 0</div>
+    <div id="hud-score">0</div>
+    <div id="hud-hp"></div>
+    <div style="font-size:.7rem;color:var(--text-dim);cursor:pointer;padding:0 5px;" onclick="pauseGame()" id="pause-btn">⏸ ESC</div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="main-canvas"></canvas>
+    <div id="blind-indicator">👁 BLIND MODE</div>
+    <div id="flash-overlay"></div>
+  </div>
+  <div id="chord-panel"></div>
+</div>
+
+<div id="screen-result">
+  <div class="result-title" id="result-title">STAGE CLEAR</div>
+  <div class="result-grade" id="result-grade">S</div>
+  <div class="result-stats">
+    <div class="stat-box"><div class="stat-label">SCORE</div><div class="stat-val" id="r-score">0</div></div>
+    <div class="stat-box"><div class="stat-label">MAX COMBO</div><div class="stat-val" id="r-combo">0</div></div>
+    <div class="stat-box"><div class="stat-label">ACCURACY</div><div class="stat-val" id="r-acc">0%</div></div>
+  </div>
+  <div class="result-stats" style="grid-template-columns:1fr 1fr;margin-top:0">
+    <div class="stat-box"><div class="stat-label">PERFECT</div><div class="stat-val" id="r-perfect" style="color:var(--neon-green)">0</div></div>
+    <div class="stat-box"><div class="stat-label">MISS</div><div class="stat-val" id="r-miss" style="color:var(--neon-pink)">0</div></div>
+  </div>
+  <div class="result-btns">
+    <button class="btn-neon" onclick="retryGame()">↺ RETRY</button>
+    <button class="btn-neon" onclick="showSelect()">☰ SONG SELECT</button>
+  </div>
+</div>
+
+</div>
+<script>
+// ============================================================
+// SONG DATA
+// ============================================================
+const SONGS = [
+  {
+    id:'song1',
+    name:'Neon Highway',
+    artist:'Chord Runner OST',
+    bpm:100,
+    duration:48,
+    difficulty:3,
+    chords:['C','Am','F','G'],
+    url: 'audio/neon_highway.mp3', // 👈 可在這裡填入你的實體 MP3 路徑
+    beatmap:[
+      {t:3,  chord:'C',  label:'C'},
+      {t:6,  chord:'Am', label:'Am'},
+      {t:9,  chord:'F',  label:'F'},
+      {t:12, chord:'G',  label:'G'},
+      {t:15, chord:'C',  label:'C'},
+      {t:17, chord:'Am', label:'Am'},
+      {t:19, chord:'F',  label:'F'},
+      {t:21, chord:'G',  label:'G'},
+      {t:24, chord:'Am', label:'Am'},
+      {t:27, chord:'F',  label:'F'},
+      {t:30, chord:'C',  label:'C'},
+      {t:33, chord:'G',  label:'G'},
+      {t:36, chord:'Am', label:'Am'},
+      {t:39, chord:'F',  label:'F'},
+      {t:42, chord:'G',  label:'G'},
+      {t:45, chord:'C',  label:'C'},
+    ]
+  },
+  {
+    id:'song2',
+    name:'Cyber Waltz',
+    artist:'Chord Runner OST',
+    bpm:120,
+    duration:56,
+    difficulty:4,
+    chords:['Dm','Am','Bb','F','C'],
+    url: '', // 若留空，會退回原本的即時嗶嗶聲合成模式
+    beatmap:[
+      {t:3,  chord:'Dm', label:'Dm'},
+      {t:6,  chord:'Am', label:'Am'},
+      {t:9,  chord:'Bb', label:'Bb'},
+      {t:12, chord:'F',  label:'F'},
+      {t:14, chord:'C',  label:'C'},
+      {t:16, chord:'Dm', label:'Dm'},
+      {t:19, chord:'Am', label:'Am'},
+      {t:22, chord:'Bb', label:'Bb'},
+      {t:25, chord:'F',  label:'F'},
+      {t:28, chord:'C',  label:'C'},
+      {t:31, chord:'Dm', label:'Dm'},
+      {t:34, chord:'Bb', label:'Bb'},
+      {t:37, chord:'Am', label:'Am'},
+      {t:40, chord:'F',  label:'F'},
+      {t:43, chord:'C',  label:'C'},
+      {t:46, chord:'Dm', label:'Dm'},
+      {t:49, chord:'Am', label:'Am'},
+      {t:52, chord:'Bb', label:'Bb'},
+    ]
+  }
+];
+
+const CHORD_NOTES = {
+  'C':     [60,64,67],
+  'Am':    [57,60,64],
+  'F':     [53,57,60],
+  'G':     [55,59,62],
+  'Dm':    [50,53,57],
+  'Bb':    [58,62,65],
+  'Em':    [52,55,59],
+  'D':     [50,54,57],
+  'Bm':    [47,50,54],
+  'Cmaj7':[60,64,67,71],
+  'Am7':  [57,60,64,67],
+  'Fmaj7':[53,57,60,64],
+  'G7':   [55,59,62,65],
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let audioCtx = null;
+let currentSong = null;
+let blindMode = false;
+
+let gameRunning = false;
+let gamePaused = false;
+let startAudioTime = 0;
+let songTime = 0; 
+
+let score = 0;
+let combo = 0;
+let maxCombo = 0;
+let hp = 5;
+let maxHp = 5;
+let perfectCount = 0;
+let missCount = 0;
+let totalNotes = 0;
+
+let obstacles = [];
+let processedNotes = new Set();
+let particles = [];
+
+// canvas
+let canvas, ctx2d;
+let W, H;
+
+// character
+const CHAR = {x:120, y:0, vy:0, onGround:true, jumping:false, rolling:false, hurt:false, legFrame:0, legTimer:0};
+let finishLineX = -1;
+let stageClearing = false;
+let stageClearTimer = 0;
+let groundY = 0;
+let gridOffset = 0;
+
+// constants
+const PREVIEW_SEC = 2.5;
+const HIT_WINDOW = 0.15; // 👈 1. 已修正：降低判定時間範圍，提高遊戲準確難度
+const CHORD_KEYS = ['a','s','d','f','g','h','j','k'];
+
+let raf = null;
+let lastTimestamp = 0;
+
+// Audio Node Reference
+let currentAudioBufferSource = null;
+let synthIntervalId = null;
+
+// ============================================================
+// AUDIO CONTROL
+// ============================================================
+function ensureAudio(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+}
+
+function midiToFreq(note){ return 440*Math.pow(2,(note-69)/12); }
+
+function playChordArpeggio(chordName){
+  ensureAudio();
+  const notes = CHORD_NOTES[chordName]||[60,64,67];
+  const now = audioCtx.currentTime;
+  notes.forEach((n,i)=>{
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value = midiToFreq(n+12);
+    osc.type = 'triangle';
+    gain.gain.setValueAtTime(0,now+i*.06);
+    gain.gain.linearRampToValueAtTime(.25,now+i*.06+.01);
+    gain.gain.exponentialRampToValueAtTime(.001,now+i*.06+.5);
+    osc.start(now+i*.06); osc.stop(now+i*.06+.6);
+  });
+}
+
+function playScratch(){
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(80,now);
+  osc.frequency.linearRampToValueAtTime(40,now+.25);
+  gain.gain.setValueAtTime(.4,now);
+  gain.gain.exponentialRampToValueAtTime(.001,now+.3);
+  osc.start(now); osc.stop(now+.35);
+}
+
+// 👈 2. 已修正：支援整首外部 MP3 載入，並保留舊有 Synth 當作備援
+async function startBackgroundMusic(song) {
+  stopBackgroundMusic();
+  ensureAudio();
+
+  // 如果歌曲物件有設定實體音樂網址，就載入 MP3 播放
+  if (song.url) {
+    try {
+      const response = await fetch(song.url);
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      
+      if (!gameRunning || gamePaused) return;
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+
+      const masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.4;
+      source.connect(masterGain);
+      masterGain.connect(audioCtx.destination);
+
+      currentAudioBufferSource = source;
+
+      // 計算切入點時間
+      const offset = startAudioTime - audioCtx.currentTime;
+      if (offset > 0) {
+        source.start(startAudioTime);
+      } else {
+        source.start(0, Math.abs(offset)); 
+      }
+      return; 
+    } catch (e) {
+      console.error("載入 MP3 失敗，切換回即時音效合成模式:", e);
+    }
+  }
+
+  // Fallback: 舊有的合成器伴奏代碼 (若無 MP3 或載入失敗時啟用)
+  const bps = song.bpm/60;
+  const beatLen = 1/bps;
+  let beatIdx = Math.floor(songTime / beatLen);
+
+  function scheduleBeat(){
+    if (!gameRunning || gamePaused) return;
+    const beatTime = startAudioTime + beatIdx*beatLen;
+    if(beatTime > startAudioTime + song.duration + 1) return;
+
+    const songT = beatIdx*beatLen;
+    let chord = song.beatmap[0].chord;
+    for(let e of song.beatmap){ if(e.t<=songT) chord=e.chord; else break; }
+    const rootNotes = CHORD_NOTES[chord]||[60,64,67];
+    const rootFreq = midiToFreq(rootNotes[0]);
+
+    if(beatIdx%4===0||beatIdx%4===2){
+      const b = audioCtx.createOscillator();
+      const bg = audioCtx.createGain();
+      b.connect(bg); bg.connect(audioCtx.destination);
+      b.type='sine'; b.frequency.value=rootFreq/2;
+      bg.gain.setValueAtTime(0,beatTime);
+      bg.gain.linearRampToValueAtTime(.2,beatTime+.01);
+      bg.gain.exponentialRampToValueAtTime(.001,beatTime+beatLen*.8);
+      b.start(beatTime); b.stop(beatTime+beatLen);
+    }
+    beatIdx++;
+    const nextTimeout = Math.max(20, ((startAudioTime + beatIdx*beatLen) - audioCtx.currentTime)*1000 - 100);
+    synthIntervalId = setTimeout(scheduleBeat, nextTimeout);
+  }
+  scheduleBeat();
+}
+
+function stopBackgroundMusic(){
+  if(currentAudioBufferSource){
+    try{ currentAudioBufferSource.stop(); }catch(e){}
+    currentAudioBufferSource = null;
+  }
+  if(synthIntervalId){
+    clearTimeout(synthIntervalId);
+    synthIntervalId = null;
+  }
+}
+
+// ============================================================
+// SONG SELECT UI
+// ============================================================
+function initSongSelect(){
+  const grid = document.getElementById('song-grid');
+  grid.innerHTML='';
+  SONGS.forEach(song=>{
+    const card = document.createElement('div');
+    card.className='song-card';
+    const stars = '🌟'.repeat(song.difficulty)+'<span style="opacity:.3">'+'🌟'.repeat(5-song.difficulty)+'</span>';
+    const mins = Math.floor(song.duration/60);
+    const secs = (song.duration%60).toString().padStart(2,'0');
+    card.innerHTML=`
+      <div class="song-name">${song.name}</div>
+      <div class="song-artist">${song.artist}</div>
+      <div class="song-meta">
+        <span>♩ ${song.bpm} BPM</span>
+        <span>⏱ ${mins}:${secs}</span>
+        <span>🎵 ${song.chords.length} chords</span>
+      </div>
+      <div class="song-stars">${stars}</div>
+      <div style="margin-top:.8rem;display:flex;gap:.4rem;flex-wrap:wrap">
+        ${song.chords.map(c=>`<span class="song-tag">${c}</span>`).join('')}
+      </div>
+    `;
+    card.onclick=()=>startGame(song);
+    grid.appendChild(card);
+  });
+
+  const bt = document.getElementById('blind-toggle');
+  bt.onclick=()=>{
+    blindMode=!blindMode;
+    bt.classList.toggle('active',blindMode);
+    document.getElementById('blind-label').textContent=blindMode?'ON':'OFF';
+  };
+}
+
+function resizeCanvas(){
+  const wrap = document.getElementById('canvas-wrap');
+  if(!wrap) return;
+  W = wrap.clientWidth;
+  H = wrap.clientHeight;
+  canvas.width = W;
+  canvas.height = H;
+  groundY = H * 0.7;
+  CHAR.y = groundY - 44;
+}
+
+function spawnObstacle(note){
+  const speed = W / PREVIEW_SEC;
+  obstacles.push({
+    x: W + 60,
+    targetTime: note.t,
+    chord: note.chord,
+    label: note.label,
+    speed: speed,
+    width: 42,
+    height: groundY * 0.55,
+    judged: false,
+    hit: false,
+    miss: false,
+    glow: 0,
+    signY: 0
+  });
+}
+
+// ============================================================
+// GAME CORE CONTROL
+// ============================================================
+function showSelect(){
+  document.getElementById('screen-select').style.display='flex';
+  document.getElementById('screen-game').style.display='none';
+  document.getElementById('screen-result').style.display='none';
+  document.getElementById('pause-overlay').style.display='none';
+  stopGame();
+}
+
+function startGame(song){
+  currentSong = song;
+  ensureAudio();
+  buildChordPanel(song);
+
+  document.getElementById('screen-select').style.display='none';
+  document.getElementById('screen-result').style.display='none';
+  document.getElementById('screen-game').style.display='flex';
+  document.getElementById('pause-overlay').style.display='none';
+  document.getElementById('blind-indicator').style.display=blindMode?'block':'none';
+  document.getElementById('hud-song').textContent=song.name;
+
+  canvas = document.getElementById('main-canvas');
+  ctx2d = canvas.getContext('2d');
+  resizeCanvas();
+
+  score=0; combo=0; maxCombo=0; hp=maxHp=5;
+  perfectCount=0; missCount=0;
+  totalNotes=song.beatmap.length;
+  obstacles=[]; particles=[]; textPopups=[];
+  processedNotes.clear();
+  gridOffset=0;
+  finishLineX=-1; stageClearing=false; stageClearTimer=0;
+  CHAR.y=groundY-44; CHAR.vy=0; CHAR.onGround=true;
+  CHAR.jumping=false; CHAR.rolling=false; CHAR.hurt=false;
+  gameRunning=true; gamePaused=false;
+
+  document.getElementById('pause-btn').textContent = '⏸ ESC';
+
+  buildHpBar();
+  updateHUD();
+
+  startAudioTime = audioCtx.currentTime + 0.2;
+  songTime = 0;
+  startBackgroundMusic(song);
+
+  if(raf) cancelAnimationFrame(raf);
+  lastTimestamp = 0;
+  raf = requestAnimationFrame(gameLoop);
+}
+
+function stopGame(){
+  gameRunning=false;
+  gamePaused=false;
+  if(raf){ cancelAnimationFrame(raf); raf=null; }
+  stopBackgroundMusic();
+}
+
+// 👈 3. 已修正：完美支援 MP3/Synth 暫停與恢復的函式
+function pauseGame(){
+  if(!gameRunning) return;
+  gamePaused = !gamePaused;
+  
+  const pauseOverlay = document.getElementById('pause-overlay');
+  const pauseBtn = document.getElementById('pause-btn');
+
+  if(gamePaused) {
+    // 【進入暫停】
+    pauseOverlay.style.display = 'flex';
+    pauseBtn.textContent = '▶ ESC';
+    stopBackgroundMusic(); // 強制中斷音樂
+  } else {
+    // 【恢復遊戲】
+    pauseOverlay.style.display = 'none';
+    pauseBtn.textContent = '⏸ ESC';
+    
+    // 依據目前累積的播放秒數，重新調整音訊系統的基準原點
+    startAudioTime = audioCtx.currentTime - songTime;
+    startBackgroundMusic(currentSong); 
+    
+    // 重設遊戲循環幀差，避免時鐘暴走
+    lastTimestamp = 0;
+    raf = requestAnimationFrame(gameLoop);
+  }
+}
+
+function buildHpBar(){
+  const el=document.getElementById('hud-hp');
+  el.innerHTML='';
+  for(let i=0; i<maxHp; i++){
+    const pip=document.createElement('div');
+    pip.className='hp-pip';
+    pip.id='hp-pip-'+i;
+    el.appendChild(pip);
+  }
+}
+
+function updateHpBar(){
+  for(let i=0; i<maxHp; i++){
+    document.getElementById('hp-pip-'+i)?.classList.toggle('lost', i>=hp);
+  }
+}
+
+function buildChordPanel(song){
+  const panel=document.getElementById('chord-panel');
+  panel.innerHTML='';
+  song.chords.forEach((chord,i)=>{
+    const btn=document.createElement('button');
+    btn.className='chord-btn';
+    btn.dataset.chord=chord;
+    btn.dataset.key=CHORD_KEYS[i];
+    const quality=chord.replace(/[A-G#b]/,'');
+    btn.innerHTML=`
+      <span class="key-hint">${CHORD_KEYS[i].toUpperCase()}</span>
+      <span style="font-size:1rem">${chord.replace(/maj|min/,'')}</span>
+      ${quality?`<span class="chord-quality">${quality}</span>`:''}
+    `;
+    btn.onclick=()=>handleInput(chord);
+    panel.appendChild(btn);
+  });
+}
+
+function updateHUD(){
+  document.getElementById('hud-score').textContent=score.toLocaleString();
+  document.getElementById('hud-combo').textContent=combo>1?`× ${combo}`:'';
+}
+
+// ============================================================
+// GAME MAIN LOOP
+// ============================================================
+function gameLoop(ts){
+  if(!gameRunning || gamePaused) return; // 👈 暫停時不跑循環
+
+  const dt = lastTimestamp ? Math.min((ts-lastTimestamp)/1000, 0.05) : 0.016;
+  lastTimestamp = ts;
+
+  // 計算目前音樂播到第幾秒
+  songTime = audioCtx.currentTime - startAudioTime;
+  if(songTime<0) songTime=0;
+
+  const prog = Math.min(songTime/currentSong.duration, 1);
+  document.getElementById('hud-progress-fill').style.width=(prog*100)+'%';
+
+  // 產生物生物
+  currentSong.beatmap.forEach(note=>{
+    if(processedNotes.has(note.t)) return;
+    if(songTime >= note.t - PREVIEW_SEC){
+      processedNotes.add(note.t);
+      spawnObstacle(note);
+    }
+  });
+
+  if(prog>=0.97 && finishLineX<0) finishLineX = W+80;
+
+  update(dt);
+  render();
+
+  if(gameRunning && !gamePaused) raf=requestAnimationFrame(gameLoop);
+}
+
+function update(dt){
+  const speed = W/PREVIEW_SEC;
+  gridOffset = (gridOffset + speed*dt) % 120;
+
+  obstacles.forEach(obs=>{
+    obs.x -= obs.speed * dt;
+    obs.signY = Math.sin(Date.now()/800)*4;
+
+    if(!obs.judged && obs.x < CHAR.x - 60){
+      obs.judged=true; obs.miss=true;
+      triggerMiss();
+    }
+  });
+  obstacles = obstacles.filter(o=>o.x>-200);
+
+  if(finishLineX>0){
+    finishLineX -= speed*dt;
+    if(finishLineX < CHAR.x && !stageClearing){
+      stageClearing=true; stageClearTimer=2;
+    }
+  }
+
+  if(stageClearing){
+    stageClearTimer -= dt;
+    if(stageClearTimer<=0 && gameRunning){
+      gameRunning=false;
+      stopBackgroundMusic();
+      setTimeout(showResult,300);
+    }
+  }
+
+  // 角色跳躍
+  if(!CHAR.onGround){
+    CHAR.vy += 900*dt;
+    CHAR.y += CHAR.vy*dt;
+    if(CHAR.y >= groundY-44){
+      CHAR.y = groundY-44; CHAR.vy=0; CHAR.onGround=true;
+      CHAR.jumping=false; CHAR.rolling=false;
+    }
+  }
+
+  if(CHAR.onGround){
+    CHAR.legTimer+=dt;
+    if(CHAR.legTimer>0.12){ CHAR.legTimer=0; CHAR.legFrame=(CHAR.legFrame+1)%4; }
+  }
+
+  if(CHAR.hurt){
+    CHAR.hurtTimer=(CHAR.hurtTimer||0)-dt;
+    if(CHAR.hurtTimer<=0) CHAR.hurt=false;
+  }
+
+  particles.forEach(p=>{ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=200*dt; p.life-=dt; p.alpha=p.life/p.maxLife; });
+  particles=particles.filter(p=>p.life>0);
+
+  if(hp<=0 && gameRunning){
+    gameRunning=false;
+    stopBackgroundMusic();
+    setTimeout(()=>showResult(true),500);
+  }
+}
+
+// ============================================================
+// HANDLING MECHANICS
+// ============================================================
+function handleInput(chord){
+  if(!gameRunning||gamePaused) return;
+
+  const btns=document.querySelectorAll('.chord-btn');
+  btns.forEach(b=>{ if(b.dataset.chord===chord){ b.classList.add('pressed'); setTimeout(()=>b.classList.remove('pressed'),150); } });
+
+  let best=null, bestDist=Infinity;
+  obstacles.forEach(obs=>{
+    if(obs.judged) return;
+    const timeErr = songTime - obs.targetTime;
+    if(Math.abs(timeErr)<HIT_WINDOW){
+      if(Math.abs(timeErr)<bestDist){ bestDist=Math.abs(timeErr); best=obs; }
+    }
+  });
+
+  if(best){
+    best.judged=true;
+    if(best.chord===chord){ best.hit=true; triggerPerfect(best); } 
+    else { best.miss=true; triggerMiss(); }
+  } else {
+    triggerMiss();
+  }
+}
+
+function triggerPerfect(obs){
+  combo++;
+  if(combo>maxCombo) maxCombo=combo;
+  score += 100 + Math.floor(combo/5)*50;
+  perfectCount++;
+  playChordArpeggio(obs.chord);
+
+  CHAR.jumping=true; CHAR.rolling=true; CHAR.onGround=false; CHAR.vy=-620;
+  spawnSparks(CHAR.x+20, groundY-20, '#39ff14');
+  showFlash('rgba(57,255,20,0.12)');
+  updateHUD();
+  spawnTextPopup('PERFECT!','#39ff14');
+}
+
+function triggerMiss(){
+  combo=0; missCount++;
+  hp=Math.max(0,hp-1);
+  updateHpBar();
+  playScratch();
+  CHAR.hurt=true; CHAR.hurtTimer=0.5;
+  showFlash('rgba(255,0,110,0.2)');
+  shakeScreen();
+  updateHUD();
+  spawnTextPopup('MISS','#ff006e');
+}
+
+let shakeActive=false;
+function shakeScreen(){
+  const wrap=document.getElementById('canvas-wrap');
+  if(shakeActive) return;
+  shakeActive=true;
+  let t=0;
+  const iv=setInterval(()=>{
+    t++; wrap.style.transform=t%2===0?'translateX(-5px)':'translateX(5px)';
+    if(t>6){ wrap.style.transform=''; clearInterval(iv); shakeActive=false; }
+  },40);
+}
+
+function showFlash(color){
+  const el=document.getElementById('flash-overlay');
+  el.style.background=color; el.style.opacity='1';
+  setTimeout(()=>{ el.style.opacity='0'; },200);
+}
+
+function spawnSparks(x,y,color){
+  for(let i=0;i<18;i++){
+    const angle=Math.random()*Math.PI*2;
+    const speed=80+Math.random()*200;
+    particles.push({
+      x,y, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed-100,
+      life:0.6+Math.random()*0.4, maxLife:1, alpha:1, color, size:2+Math.random()*3
+    });
+  }
+}
+
+let textPopups=[];
+function spawnTextPopup(text,color){
+  textPopups.push({text,color,x:CHAR.x+30,y:groundY-80,vy:-80,life:1,maxLife:1,alpha:1});
+}
+
+// ============================================================
+// CANVAS GRAPHICS RENDER
+// ============================================================
+function render(){
+  ctx2d.clearRect(0,0,W,H);
+  drawBackground();
+  drawGrid();
+  drawFinishLine();
+  drawObstacles();
+  drawCharacter();
+  drawParticles();
+  drawTextPopups();
+
+  if(stageClearing){
+    const alpha=Math.min(1,(2-stageClearTimer)/0.5);
+    ctx2d.globalAlpha=alpha; ctx2d.fillStyle='#00f5ff';
+    ctx2d.font=`bold ${Math.floor(W*0.08)}px Orbitron,monospace`;
+    ctx2d.textAlign='center';
+    ctx2d.shadowColor='#00f5ff'; ctx2d.shadowBlur=30;
+    ctx2d.fillText('STAGE CLEAR!',W/2,H/2);
+    ctx2d.shadowBlur=0; ctx2d.globalAlpha=1;
+  }
+}
+
+function drawBackground(){
+  const grad=ctx2d.createLinearGradient(0,0,0,groundY);
+  grad.addColorStop(0,'#020510'); grad.addColorStop(1,'#050818');
+  ctx2d.fillStyle=grad; ctx2d.fillRect(0,0,W,groundY);
+
+  const ggrad=ctx2d.createLinearGradient(0,groundY,0,H);
+  ggrad.addColorStop(0,'#040e20'); ggrad.addColorStop(1,'#020810');
+  ctx2d.fillStyle=ggrad; ctx2d.fillRect(0,groundY,W,H-groundY);
+
+  ctx2d.strokeStyle='rgba(0,245,255,0.4)'; ctx2d.lineWidth=2;
+  ctx2d.beginPath(); ctx2d.moveTo(0,groundY); ctx2d.lineTo(W,groundY); ctx2d.stroke();
+
+  ctx2d.fillStyle='rgba(200,220,255,0.6)';
+  for(let i=0;i<60;i++){
+    const sx=((i*137+20)%W); const sy=((i*73+10)%(groundY*0.8));
+    const br=0.5+0.5*Math.sin(Date.now()/1000+i);
+    ctx2d.globalAlpha=0.2+br*0.5; ctx2d.fillRect(sx,sy,1.5,1.5);
+  }
+  ctx2d.globalAlpha=1;
+}
+
+function drawGrid(){
+  const vp = {x:W/2, y:groundY}; const lines = 10;
+  ctx2d.strokeStyle='rgba(0,200,255,0.12)'; ctx2d.lineWidth=1;
+  for(let i=0;i<=lines;i++){
+    const t=i/lines; const bx=t*W;
+    ctx2d.beginPath(); ctx2d.moveTo(vp.x+(bx-vp.x)*0.01,groundY); ctx2d.lineTo(bx,H); ctx2d.stroke();
+  }
+  const hCount=8;
+  for(let i=0;i<hCount;i++){
+    const prog=((i/hCount*120+gridOffset)%120)/120; const y=groundY+prog*(H-groundY);
+    if(y<=groundY) continue;
+    const fade=1-(y-groundY)/(H-groundY)*0.7; ctx2d.globalAlpha=0.15*fade;
+    ctx2d.beginPath(); ctx2d.moveTo(0,y); ctx2d.lineTo(W,y); ctx2d.stroke();
+  }
+  ctx2d.globalAlpha=1;
+}
+
+function drawFinishLine(){
+  if(finishLineX<0) return;
+  const x=finishLineX; const pulse=0.7+0.3*Math.sin(Date.now()/200);
+  ctx2d.strokeStyle=`rgba(255,255,0,${pulse})`; ctx2d.lineWidth=3;
+  ctx2d.shadowColor='#ffff00'; ctx2d.shadowBlur=15;
+  ctx2d.beginPath(); ctx2d.moveTo(x,groundY-H*0.55); ctx2d.lineTo(x,groundY); ctx2d.stroke();
+  ctx2d.fillStyle=`rgba(255,200,0,${pulse*0.8})`; ctx2d.fillRect(x,groundY-H*0.55,80,24);
+  ctx2d.fillStyle='#000'; ctx2d.font='bold 12px Orbitron,monospace'; ctx2d.textAlign='left';
+  ctx2d.fillText('GOAL',x+8,groundY-H*0.55+16); ctx2d.shadowBlur=0;
+}
+
+function drawObstacles(){
+  obstacles.forEach(obs=>{
+    if(obs.x>W+200) return;
+    const x=obs.x; const topy=groundY-obs.height; const w=obs.width;
+    if(obs.miss) ctx2d.globalAlpha=0.3;
+
+    ctx2d.fillStyle='#0a1828'; ctx2d.fillRect(x,topy,w,obs.height);
+    const edgeColor=obs.hit?'#39ff14': obs.miss?'#444':'#00f5ff';
+    ctx2d.strokeStyle=edgeColor; ctx2d.lineWidth=2;
+    ctx2d.shadowColor=edgeColor; ctx2d.shadowBlur=obs.hit?20:8;
+    ctx2d.strokeRect(x,topy,w,obs.height);
+
+    const dt=Math.abs(songTime-obs.targetTime);
+    if(dt<0.6 && !obs.judged){
+      const glow=(1-dt/0.6)*0.8;
+      ctx2d.strokeStyle=`rgba(255,255,0,${glow})`; ctx2d.lineWidth=3+glow*3;
+      ctx2d.shadowColor='#ffff00'; ctx2d.shadowBlur=20*glow;
+      ctx2d.beginPath(); ctx2d.moveTo(CHAR.x+40,0); ctx2d.lineTo(CHAR.x+40,groundY); ctx2d.stroke();
+    }
+    ctx2d.shadowBlur=0;
+
+    const signX=x-24; const signY=topy-50+obs.signY; const signW=w+50; const signH=34;
+    ctx2d.fillStyle='#060e1c'; ctx2d.strokeStyle=edgeColor; ctx2d.lineWidth=1.5;
+    ctx2d.shadowColor=edgeColor; ctx2d.shadowBlur=6;
+    roundRect(ctx2d,signX,signY,signW,signH,6,true,true);
+    ctx2d.shadowBlur=0;
+
+    ctx2d.fillStyle=obs.hit?'#39ff14': obs.miss?'#444': obs.judged?'#888':'#00f5ff';
+    ctx2d.font=`bold ${signW>80?16:13}px Orbitron,monospace`; ctx2d.textAlign='center';
+    ctx2d.fillText(blindMode&&!obs.judged?'?':obs.label, signX+signW/2, signY+signH/2+6);
+
+    ctx2d.strokeStyle=edgeColor; ctx2d.lineWidth=1;
+    ctx2d.beginPath(); ctx2d.moveTo(x+w/2, signY+signH); ctx2d.lineTo(x+w/2, topy); ctx2d.stroke();
+    ctx2d.globalAlpha=1;
+  });
+}
+
+function roundRect(c,x,y,w,h,r,fill,stroke){
+  c.beginPath(); c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.arcTo(x+w,y,x+w,y+r,r);
+  c.lineTo(x+w,y+h-r); c.arcTo(x+w,y+h,x+w-r,y+h,r); c.lineTo(x+r,y+h);
+  c.arcTo(x,y+h,x,y+h-r,r); c.lineTo(x,y+r); c.arcTo(x,y+r,x+r,y,r); c.closePath();
+  if(fill) c.fill(); if(stroke) c.stroke();
+}
+
+function drawCharacter(){
+  const cx=CHAR.x; const cy=CHAR.y; const hurt=CHAR.hurt; const rolling=CHAR.rolling;
+  ctx2d.save(); ctx2d.translate(cx,cy);
+  if(rolling) ctx2d.rotate(Math.sin(Date.now()/80)*0.6);
+  if(hurt && Math.floor(Date.now()/80)%2===0){ ctx2d.globalAlpha=0.5; ctx2d.fillStyle='#ff006e'; }
+
+  const bodyColor='#00f5ff'; const accentColor='#ff006e';
+  ctx2d.fillStyle='rgba(0,245,255,0.15)'; ctx2d.beginPath(); ctx2d.ellipse(20,44,18,5,0,0,Math.PI*2); ctx2d.fill();
+
+  const lf=CHAR.legFrame;
+  if(CHAR.onGround){
+    const legAngles=[[0.3,-0.3],[0.5,-0.5],[-0.3,0.3],[-0.5,0.5]]; const [a1,a2]=legAngles[lf]||[0,0];
+    ctx2d.strokeStyle='#0a9aaa'; ctx2d.lineWidth=5; ctx2d.lineCap='round';
+    ctx2d.beginPath(); ctx2d.moveTo(16,28); ctx2d.lineTo(16+Math.sin(a1)*16, 28+Math.cos(a1)*16); ctx2d.stroke();
+    ctx2d.beginPath(); ctx2d.moveTo(24,28); ctx2d.lineTo(24+Math.sin(a2)*16, 28+Math.cos(a2)*16); ctx2d.stroke();
+  } else {
+    ctx2d.strokeStyle='#0a9aaa'; ctx2d.lineWidth=5; ctx2d.lineCap='round';
+    ctx2d.beginPath(); ctx2d.moveTo(16,28); ctx2d.lineTo(8,44); ctx2d.stroke();
+    ctx2d.beginPath(); ctx2d.moveTo(24,28); ctx2d.lineTo(32,44); ctx2d.stroke();
+  }
+
+  ctx2d.fillStyle=bodyColor; ctx2d.shadowColor=bodyColor; ctx2d.shadowBlur=10;
+  roundRect(ctx2d,8,12,24,20,4,true,false);
+  ctx2d.fillStyle=accentColor; ctx2d.fillRect(8,18,24,4);
+
+  ctx2d.shadowColor=bodyColor; ctx2d.shadowBlur=8; ctx2d.fillStyle='#0a3a4a';
+  roundRect(ctx2d,6,0,28,16,5,true,false); ctx2d.strokeStyle=bodyColor; ctx2d.lineWidth=1.5;
+  roundRect(ctx2d,6,0,28,16,5,false,true);
+
+  ctx2d.strokeStyle=accentColor; ctx2d.lineWidth=3; ctx2d.shadowColor=accentColor; ctx2d.shadowBlur=8;
+  ctx2d.beginPath(); ctx2d.arc(20,6,12,Math.PI*1.1,Math.PI*1.9); ctx2d.stroke();
+  ctx2d.fillStyle=accentColor; ctx2d.shadowBlur=10;
+  ctx2d.beginPath(); ctx2d.arc(6,8,4,0,Math.PI*2); ctx2d.fill();
+  ctx2d.beginPath(); ctx2d.arc(34,8,4,0,Math.PI*2); ctx2d.fill();
+
+  ctx2d.shadowBlur=0; ctx2d.fillStyle='#00f5ff'; ctx2d.fillRect(12,5,5,3); ctx2d.fillRect(23,5,5,3);
+
+  ctx2d.strokeStyle=bodyColor; ctx2d.lineWidth=4; ctx2d.shadowColor=bodyColor; ctx2d.shadowBlur=6;
+  ctx2d.beginPath(); ctx2d.moveTo(32,16);
+  const armSwing=CHAR.onGround?Math.sin(Date.now()/200)*8:8;
+  ctx2d.lineTo(42,22+armSwing); ctx2d.stroke();
+  ctx2d.shadowBlur=0; ctx2d.restore();
+}
+
+function drawParticles(){
+  particles.forEach(p=>{
+    ctx2d.globalAlpha=p.alpha; ctx2d.fillStyle=p.color; ctx2d.shadowColor=p.color; ctx2d.shadowBlur=6;
+    ctx2d.beginPath(); ctx2d.arc(p.x,p.y,p.size,0,Math.PI*2); ctx2d.fill();
+  });
+  ctx2d.globalAlpha=1; ctx2d.shadowBlur=0;
+}
+
+function drawTextPopups(){
+  textPopups.forEach(p=>{
+    p.y+=p.vy*0.016; p.life-=0.016; p.alpha=p.life/p.maxLife;
+    ctx2d.globalAlpha=p.alpha; ctx2d.fillStyle=p.color; ctx2d.shadowColor=p.color; ctx2d.shadowBlur=10;
+    ctx2d.font='bold 20px Orbitron,monospace'; ctx2d.textAlign='center'; ctx2d.fillText(p.text,p.x,p.y);
+  });
+  textPopups=textPopups.filter(p=>p.life>0);
+  ctx2d.globalAlpha=1; ctx2d.shadowBlur=0;
+}
+
+// ============================================================
+// RESULT LOGIC
+// ============================================================
+function showResult(failed){
+  document.getElementById('screen-game').style.display='none';
+  document.getElementById('screen-result').style.display='flex';
+
+  const acc = totalNotes>0 ? Math.round((perfectCount/totalNotes)*100) : 0;
+  let grade,cls;
+  if(failed){ grade='F'; cls='grade-f'; }
+  else if(acc===100){ grade='SS'; cls='grade-ss'; }
+  else if(acc>=90){ grade='S'; cls='grade-s'; }
+  else if(acc>=80){ grade='A'; cls='grade-a'; }
+  else if(acc>=70){ grade='B'; cls='grade-b'; }
+  else { grade='F'; cls='grade-f'; }
+
+  const titleEl=document.getElementById('result-title');
+  titleEl.textContent=failed?'GAME OVER':'STAGE CLEAR';
+  titleEl.className='result-title '+(failed?'fail':'clear');
+
+  const gradeEl=document.getElementById('result-grade');
+  gradeEl.textContent=grade; gradeEl.className='result-grade '+cls;
+
+  document.getElementById('r-score').textContent=score.toLocaleString();
+  document.getElementById('r-combo').textContent=maxCombo;
+  document.getElementById('r-acc').textContent=acc+'%';
+  document.getElementById('r-perfect').textContent=perfectCount;
+  document.getElementById('r-miss').textContent=missCount;
+}
+
+function retryGame(){ if(currentSong) startGame(currentSong); }
+
+// ============================================================
+// INPUT LISTENERS
+// ============================================================
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ pauseGame(); return; } // 👈 支援鍵盤 ESC 暫停
+  if(!gameRunning||gamePaused) return;
+  if(!currentSong) return;
+  const idx=CHORD_KEYS.indexOf(e.key.toLowerCase());
+  if(idx>=0 && idx<currentSong.chords.length){
+    handleInput(currentSong.chords[idx]);
+  }
+});
+
+window.addEventListener('resize',()=>{ if(canvas) resizeCanvas(); });
+
+// INITIALIZE
+initSongSelect();
+</script>
+</body>
+</html>
