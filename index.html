@@ -240,7 +240,7 @@ const SONGS = [
     duration:48,
     difficulty:3,
     chords:['C','Am','F','G'],
-    url: 'audio/neon_highway.mp3', // 👈 可在這裡填入你的實體 MP3 路徑
+    url: 'audio/neon_highway.mp3', 
     beatmap:[
       {t:3,  chord:'C',  label:'C'},
       {t:6,  chord:'Am', label:'Am'},
@@ -268,7 +268,7 @@ const SONGS = [
     duration:56,
     difficulty:4,
     chords:['Dm','Am','Bb','F','C'],
-    url: '', // 若留空，會退回原本的即時嗶嗶聲合成模式
+    url: '', 
     beatmap:[
       {t:3,  chord:'Dm', label:'Dm'},
       {t:6,  chord:'Am', label:'Am'},
@@ -347,13 +347,12 @@ let gridOffset = 0;
 
 // constants
 const PREVIEW_SEC = 3.0;
-const HIT_WINDOW = 0.55; // 👈 1. 已修正：降低判定時間範圍，提高遊戲準確難度
+const HIT_WINDOW = 0.55; 
 const CHORD_KEYS = ['a','s','d','f','g','h','j','k'];
 
 let raf = null;
 let lastTimestamp = 0;
 
-// Audio Node Reference
 let currentAudioBufferSource = null;
 let synthIntervalId = null;
 
@@ -398,12 +397,10 @@ function playScratch(){
   osc.start(now); osc.stop(now+.35);
 }
 
-// 👈 2. 已修正：支援整首外部 MP3 載入，並保留舊有 Synth 當作備援
 async function startBackgroundMusic(song) {
   stopBackgroundMusic();
   ensureAudio();
 
-  // 如果歌曲物件有設定實體音樂網址，就載入 MP3 播放
   if (song.url) {
     try {
       const response = await fetch(song.url);
@@ -422,7 +419,6 @@ async function startBackgroundMusic(song) {
 
       currentAudioBufferSource = source;
 
-      // 計算切入點時間
       const offset = startAudioTime - audioCtx.currentTime;
       if (offset > 0) {
         source.start(startAudioTime);
@@ -435,7 +431,6 @@ async function startBackgroundMusic(song) {
     }
   }
 
-  // Fallback: 舊有的合成器伴奏代碼 (若無 MP3 或載入失敗時啟用)
   const bps = song.bpm/60;
   const beatLen = 1/bps;
   let beatIdx = Math.floor(songTime / beatLen);
@@ -535,7 +530,7 @@ function spawnObstacle(note){
     chord: note.chord,
     label: note.label,
     speed: speed,
-    width: 75,
+    width: 160,  // 👈 1. 修正：大幅調寬障礙物本體（配合 0.55s 的判定寬度）
     height: groundY * 0.55,
     judged: false,
     hit: false,
@@ -604,7 +599,6 @@ function stopGame(){
   stopBackgroundMusic();
 }
 
-// 👈 3. 已修正：完美支援 MP3/Synth 暫停與恢復的函式
 function pauseGame(){
   if(!gameRunning) return;
   gamePaused = !gamePaused;
@@ -613,20 +607,16 @@ function pauseGame(){
   const pauseBtn = document.getElementById('pause-btn');
 
   if(gamePaused) {
-    // 【進入暫停】
     pauseOverlay.style.display = 'flex';
     pauseBtn.textContent = '▶ ESC';
-    stopBackgroundMusic(); // 強制中斷音樂
+    stopBackgroundMusic(); 
   } else {
-    // 【恢復遊戲】
     pauseOverlay.style.display = 'none';
     pauseBtn.textContent = '⏸ ESC';
     
-    // 依據目前累積的播放秒數，重新調整音訊系統的基準原點
     startAudioTime = audioCtx.currentTime - songTime;
     startBackgroundMusic(currentSong); 
     
-    // 重設遊戲循環幀差，避免時鐘暴走
     lastTimestamp = 0;
     raf = requestAnimationFrame(gameLoop);
   }
@@ -677,19 +667,17 @@ function updateHUD(){
 // GAME MAIN LOOP
 // ============================================================
 function gameLoop(ts){
-  if(!gameRunning || gamePaused) return; // 👈 暫停時不跑循環
+  if(!gameRunning || gamePaused) return; 
 
   const dt = lastTimestamp ? Math.min((ts-lastTimestamp)/1000, 0.05) : 0.016;
   lastTimestamp = ts;
 
-  // 計算目前音樂播到第幾秒
   songTime = audioCtx.currentTime - startAudioTime;
   if(songTime<0) songTime=0;
 
   const prog = Math.min(songTime/currentSong.duration, 1);
   document.getElementById('hud-progress-fill').style.width=(prog*100)+'%';
 
-  // 產生物生物
   currentSong.beatmap.forEach(note=>{
     if(processedNotes.has(note.t)) return;
     if(songTime >= note.t - PREVIEW_SEC){
@@ -714,7 +702,8 @@ function update(dt){
     obs.x -= obs.speed * dt;
     obs.signY = Math.sin(Date.now()/800)*4;
 
-    if(!obs.judged && obs.x < CHAR.x - 60){
+    // 👈 2. 修正：調寬判定死區。防止方塊太大導致提早觸發 Miss
+    if(!obs.judged && obs.x < CHAR.x - (obs.width / 2)){
       obs.judged=true; obs.miss=true;
       triggerMiss();
     }
@@ -737,7 +726,6 @@ function update(dt){
     }
   }
 
-  // 角色跳躍
   if(!CHAR.onGround){
     CHAR.vy += 900*dt;
     CHAR.y += CHAR.vy*dt;
@@ -948,15 +936,20 @@ function drawObstacles(){
     }
     ctx2d.shadowBlur=0;
 
-    const signX=x-24; const signY=topy-50+obs.signY; const signW=w+50; const signH=34;
+    // 👈 3. 修正：配合大方塊，重新調整上方的招牌面板與文字大小
+    const signW = Math.max(w - 20, 100); 
+    const signX = x + (w - signW) / 2;  
+    const signH = 38;
+    const signY = topy - 50 + obs.signY;
+
     ctx2d.fillStyle='#060e1c'; ctx2d.strokeStyle=edgeColor; ctx2d.lineWidth=1.5;
     ctx2d.shadowColor=edgeColor; ctx2d.shadowBlur=6;
     roundRect(ctx2d,signX,signY,signW,signH,6,true,true);
     ctx2d.shadowBlur=0;
 
     ctx2d.fillStyle=obs.hit?'#39ff14': obs.miss?'#444': obs.judged?'#888':'#00f5ff';
-    ctx2d.font=`bold ${signW>80?16:13}px Orbitron,monospace`; ctx2d.textAlign='center';
-    ctx2d.fillText(blindMode&&!obs.judged?'?':obs.label, signX+signW/2, signY+signH/2+6);
+    ctx2d.font=`bold 24px Orbitron,monospace`; ctx2d.textAlign='center';
+    ctx2d.fillText(blindMode&&!obs.judged?'?':obs.label, signX+signW/2, signY+signH/2+8);
 
     ctx2d.strokeStyle=edgeColor; ctx2d.lineWidth=1;
     ctx2d.beginPath(); ctx2d.moveTo(x+w/2, signY+signH); ctx2d.lineTo(x+w/2, topy); ctx2d.stroke();
@@ -1015,6 +1008,7 @@ function drawCharacter(){
   ctx2d.shadowBlur=0; ctx2d.restore();
 }
 
+// 其餘粒子與彈出文字函式保持不變...
 function drawParticles(){
   particles.forEach(p=>{
     ctx2d.globalAlpha=p.alpha; ctx2d.fillStyle=p.color; ctx2d.shadowColor=p.color; ctx2d.shadowBlur=6;
@@ -1033,9 +1027,6 @@ function drawTextPopups(){
   ctx2d.globalAlpha=1; ctx2d.shadowBlur=0;
 }
 
-// ============================================================
-// RESULT LOGIC
-// ============================================================
 function showResult(failed){
   document.getElementById('screen-game').style.display='none';
   document.getElementById('screen-result').style.display='flex';
@@ -1065,11 +1056,8 @@ function showResult(failed){
 
 function retryGame(){ if(currentSong) startGame(currentSong); }
 
-// ============================================================
-// INPUT LISTENERS
-// ============================================================
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){ pauseGame(); return; } // 👈 支援鍵盤 ESC 暫停
+  if(e.key==='Escape'){ pauseGame(); return; } 
   if(!gameRunning||gamePaused) return;
   if(!currentSong) return;
   const idx=CHORD_KEYS.indexOf(e.key.toLowerCase());
@@ -1080,7 +1068,6 @@ document.addEventListener('keydown',e=>{
 
 window.addEventListener('resize',()=>{ if(canvas) resizeCanvas(); });
 
-// INITIALIZE
 initSongSelect();
 </script>
 </body>
