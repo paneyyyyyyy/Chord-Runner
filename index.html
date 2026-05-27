@@ -761,9 +761,11 @@ function update(dt){
 function handleInput(chord){
   if(!gameRunning||gamePaused) return;
 
+  // 視覺按鈕按壓動畫保持不變
   const btns=document.querySelectorAll('.chord-btn');
   btns.forEach(b=>{ if(b.dataset.chord===chord){ b.classList.add('pressed'); setTimeout(()=>b.classList.remove('pressed'),150); } });
 
+  // 尋找判定範圍內最近且尚未判定的障礙物
   let best=null, bestDist=Infinity;
   obstacles.forEach(obs=>{
     if(obs.judged) return;
@@ -773,13 +775,19 @@ function handleInput(chord){
     }
   });
 
+  // 核心規則修正：只有在有找到障礙物的情況下，才進行對錯判定
   if(best){
     best.judged=true;
-    if(best.chord===chord){ best.hit=true; triggerPerfect(best); } 
-    else { best.miss=true; triggerMiss(); }
-  } else {
-    triggerMiss();
-  }
+    if(best.chord===chord){ 
+      best.hit=true; 
+      triggerPerfect(best); // 和弦正確 ➔ PERFECT
+    } else {
+      best.miss=true; 
+      triggerMiss();        // 和弦按錯 ➔ MISS
+    }
+  } 
+  // 原本這裡的 else { triggerMiss(); } 已經被拿掉了
+  // 現在沒有障礙物時亂按（空打），程式會直接略過，不會有任何 MISS 報錯或扣血！
 }
 
 function triggerPerfect(obs){
