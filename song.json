@@ -1,0 +1,503 @@
+[
+  {
+    "id": "song1",
+    "name": "Neon Highway",
+    "artist": "Chord Runner OST",
+    "bpm": 100,
+    "duration": 48,
+    "difficulty": 3,
+    "chords": [
+      "C",
+      "Am",
+      "F",
+      "G"
+    ],
+    "url": "audio/neon_highway.mp3",
+    "beatmap": [
+      {
+        "t": 3,
+        "chord": "C"
+      },
+      {
+        "t": 6,
+        "chord": "Am"
+      },
+      {
+        "t": 9,
+        "chord": "F"
+      },
+      {
+        "t": 12,
+        "chord": "G"
+      },
+      {
+        "t": 15,
+        "chord": "C"
+      },
+      {
+        "t": 17,
+        "chord": "Am"
+      },
+      {
+        "t": 19,
+        "chord": "F"
+      },
+      {
+        "t": 21,
+        "chord": "G"
+      },
+      {
+        "t": 24,
+        "chord": "Am"
+      },
+      {
+        "t": 27,
+        "chord": "F"
+      },
+      {
+        "t": 30,
+        "chord": "C"
+      },
+      {
+        "t": 33,
+        "chord": "G"
+      },
+      {
+        "t": 36,
+        "chord": "Am"
+      },
+      {
+        "t": 39,
+        "chord": "F"
+      },
+      {
+        "t": 42,
+        "chord": "G"
+      },
+      {
+        "t": 45,
+        "chord": "C"
+      }
+    ]
+  },
+  {
+    "id": "song2",
+    "name": "Cyber Waltz",
+    "artist": "Chord Runner OST",
+    "bpm": 120,
+    "duration": 56,
+    "difficulty": 4,
+    "chords": [
+      "Dm",
+      "Am",
+      "Bb",
+      "F",
+      "C"
+    ],
+    "url": "",
+    "beatmap": [
+      {
+        "t": 3,
+        "chord": "Dm"
+      },
+      {
+        "t": 6,
+        "chord": "Am"
+      },
+      {
+        "t": 9,
+        "chord": "F"
+      },
+      {
+        "t": 12,
+        "chord": "C"
+      },
+      {
+        "t": 14,
+        "chord": "Dm"
+      },
+      {
+        "t": 16,
+        "chord": "Am"
+      },
+      {
+        "t": 19,
+        "chord": "F"
+      },
+      {
+        "t": 22,
+        "chord": "C"
+      },
+      {
+        "t": 25,
+        "chord": "Dm"
+      },
+      {
+        "t": 28,
+        "chord": "F"
+      },
+      {
+        "t": 31,
+        "chord": "Am"
+      },
+      {
+        "t": 34,
+        "chord": "C"
+      },
+      {
+        "t": 37,
+        "chord": "Dm"
+      },
+      {
+        "t": 40,
+        "chord": "Am"
+      },
+      {
+        "t": 43,
+        "chord": "F"
+      },
+      {
+        "t": 46,
+        "chord": "C"
+      }
+    ]
+  },
+  {
+    "id": "song_1780150886221",
+    "name": "說吧",
+    "artist": "ヨルシカ",
+    "bpm": 180,
+    "duration": 243,
+    "difficulty": 3,
+    "chords": [
+      "F",
+      "Fm",
+      "G7",
+      "D",
+      "Cm",
+      "Am",
+      "Dm",
+      "A",
+      "B",
+      "Bm",
+      "G",
+      "Em"
+    ],
+    "url": "audio/ヨルシカ - 言って(Music Video) 10.00.48 PM.mp3",
+    "displayMode": "song",
+    "beatmap": [
+      {
+        "t": 4.5,
+        "chord": "F"
+      },
+      {
+        "t": 6,
+        "chord": "G"
+      },
+      {
+        "t": 8.5,
+        "chord": "Em"
+      },
+      {
+        "t": 11.5,
+        "chord": "Am"
+      },
+      {
+        "t": 16.5,
+        "chord": "F"
+      },
+      {
+        "t": 18,
+        "chord": "G7"
+      },
+      {
+        "t": 19.5,
+        "chord": "D"
+      },
+      {
+        "t": 22.5,
+        "chord": "D"
+      },
+      {
+        "t": 25.5,
+        "chord": "F"
+      },
+      {
+        "t": 28.5,
+        "chord": "G7"
+      },
+      {
+        "t": 34.5,
+        "chord": "Cm"
+      },
+      {
+        "t": 36,
+        "chord": "G7"
+      },
+      {
+        "t": 39,
+        "chord": "Am"
+      },
+      {
+        "t": 40.5,
+        "chord": "Cm"
+      },
+      {
+        "t": 48,
+        "chord": "G7"
+      },
+      {
+        "t": 54,
+        "chord": "F"
+      },
+      {
+        "t": 61.5,
+        "chord": "G7"
+      },
+      {
+        "t": 67.5,
+        "chord": "Dm"
+      },
+      {
+        "t": 69,
+        "chord": "G7"
+      },
+      {
+        "t": 75,
+        "chord": "G7"
+      },
+      {
+        "t": 84,
+        "chord": "Am"
+      },
+      {
+        "t": 87,
+        "chord": "Cm"
+      },
+      {
+        "t": 88.5,
+        "chord": "F"
+      },
+      {
+        "t": 90,
+        "chord": "G7"
+      },
+      {
+        "t": 91.5,
+        "chord": "Am"
+      },
+      {
+        "t": 94.5,
+        "chord": "A"
+      },
+      {
+        "t": 100.5,
+        "chord": "G7"
+      },
+      {
+        "t": 103.5,
+        "chord": "Am"
+      },
+      {
+        "t": 105,
+        "chord": "Cm"
+      },
+      {
+        "t": 106.5,
+        "chord": "Am"
+      },
+      {
+        "t": 109.5,
+        "chord": "D"
+      },
+      {
+        "t": 111,
+        "chord": "Am"
+      },
+      {
+        "t": 117,
+        "chord": "Cm"
+      },
+      {
+        "t": 120,
+        "chord": "F"
+      },
+      {
+        "t": 121.5,
+        "chord": "G7"
+      },
+      {
+        "t": 127.5,
+        "chord": "Am"
+      },
+      {
+        "t": 130.5,
+        "chord": "F"
+      },
+      {
+        "t": 132,
+        "chord": "G7"
+      },
+      {
+        "t": 135,
+        "chord": "A"
+      },
+      {
+        "t": 142.5,
+        "chord": "G7"
+      },
+      {
+        "t": 145.5,
+        "chord": "A"
+      },
+      {
+        "t": 150,
+        "chord": "A"
+      },
+      {
+        "t": 154.5,
+        "chord": "Dm"
+      },
+      {
+        "t": 157.5,
+        "chord": "G7"
+      },
+      {
+        "t": 162,
+        "chord": "A"
+      },
+      {
+        "t": 165,
+        "chord": "Dm"
+      },
+      {
+        "t": 168,
+        "chord": "Dm"
+      },
+      {
+        "t": 169.5,
+        "chord": "G7"
+      },
+      {
+        "t": 172.5,
+        "chord": "F"
+      },
+      {
+        "t": 175.5,
+        "chord": "G7"
+      },
+      {
+        "t": 178.5,
+        "chord": "D"
+      },
+      {
+        "t": 180,
+        "chord": "G7"
+      },
+      {
+        "t": 181.5,
+        "chord": "D"
+      },
+      {
+        "t": 183,
+        "chord": "A"
+      },
+      {
+        "t": 186,
+        "chord": "G7"
+      },
+      {
+        "t": 190.5,
+        "chord": "G7"
+      },
+      {
+        "t": 192,
+        "chord": "D"
+      },
+      {
+        "t": 201,
+        "chord": "Dm"
+      },
+      {
+        "t": 202.5,
+        "chord": "Fm"
+      },
+      {
+        "t": 205.5,
+        "chord": "Cm"
+      },
+      {
+        "t": 207,
+        "chord": "Fm"
+      },
+      {
+        "t": 208.5,
+        "chord": "B"
+      },
+      {
+        "t": 210,
+        "chord": "Cm"
+      },
+      {
+        "t": 211.5,
+        "chord": "G7"
+      },
+      {
+        "t": 214.5,
+        "chord": "Cm"
+      },
+      {
+        "t": 216,
+        "chord": "Fm"
+      },
+      {
+        "t": 219,
+        "chord": "B"
+      },
+      {
+        "t": 222,
+        "chord": "B"
+      },
+      {
+        "t": 225,
+        "chord": "B"
+      },
+      {
+        "t": 226.5,
+        "chord": "Fm"
+      },
+      {
+        "t": 228,
+        "chord": "Cm"
+      },
+      {
+        "t": 229.5,
+        "chord": "Fm"
+      },
+      {
+        "t": 231,
+        "chord": "Cm"
+      },
+      {
+        "t": 232.5,
+        "chord": "Fm"
+      },
+      {
+        "t": 234,
+        "chord": "Cm"
+      },
+      {
+        "t": 235.5,
+        "chord": "Am"
+      },
+      {
+        "t": 237,
+        "chord": "Bm"
+      },
+      {
+        "t": 238.5,
+        "chord": "Cm"
+      }
+    ]
+  }
+]
